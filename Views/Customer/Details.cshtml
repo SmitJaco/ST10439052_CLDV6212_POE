@@ -1,0 +1,149 @@
+@model ST10439052_CLDV_POE.Models.Customer
+
+@{
+    ViewData["Title"] = "Customer Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Customer Details</h1>
+    <div>
+        <a asp-action="Edit" asp-route-id="@Model.RowKey" class="btn btn-primary me-2">
+            <i class="fas fa-pencil"></i> Edit
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Customer ID:</dt>
+                            <dd class="col-sm-8">@Model.CustomerId</dd>
+                            
+                            <dt class="col-sm-4">First Name:</dt>
+                            <dd class="col-sm-8">@Model.Name</dd>
+                            
+                            <dt class="col-sm-4">Last Name:</dt>
+                            <dd class="col-sm-8">@Model.Surname</dd>
+                            
+                            <dt class="col-sm-4">Full Name:</dt>
+                            <dd class="col-sm-8"><strong>@Model.Name @Model.Surname</strong></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Username:</dt>
+                            <dd class="col-sm-8">@Model.Username</dd>
+                            
+                            <dt class="col-sm-4">Email:</dt>
+                            <dd class="col-sm-8">
+                                <a href="mailto:@Model.Email">@Model.Email</a>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <dl class="row">
+                            <dt class="col-sm-2">Shipping Address:</dt>
+                            <dd class="col-sm-10">@Model.ShippingAddress</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-controller="Order" asp-action="Create" asp-route-customerId="@Model.RowKey" 
+                       class="btn btn-success">
+                        <i class="fas fa-cart-plus"></i> Create Order
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@Model.RowKey" class="btn btn-primary">
+                        <i class="fas fa-pencil"></i> Edit Customer
+                    </a>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-list"></i> View All Customers
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">Customer Information</h6>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>Created:</strong><br />
+                    <small class="text-muted">@Model.Timestamp?.ToString("MMM dd, yyyy HH:mm")</small>
+                </p>
+                <p>
+                    <strong>Full Customer ID:</strong><br />
+                    <small class="text-muted font-monospace">@Model.CustomerId</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ViewBag.RecentOrders != null && ((IEnumerable<dynamic>)ViewBag.RecentOrders).Any())
+{
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Recent Orders</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Total Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in ViewBag.RecentOrders)
+                        {
+                            <tr>
+                                <td>@order.OrderId</td>
+                                <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <span class="badge bg-@(order.Status == "Completed" ? "success" : 
+                                                         order.Status == "Pending" ? "warning" : 
+                                                         order.Status == "Cancelled" ? "danger" : "secondary")">
+                                        @order.Status
+                                    </span>
+                                </td>
+                                <td>@order.TotalAmount.ToString("C")</td>
+                                <td>
+                                    <a asp-controller="Order" asp-action="Details" asp-route-id="@order.OrderId" 
+                                       class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
