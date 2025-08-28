@@ -8,16 +8,16 @@
 
 <div class="row">
     <div class="col-md-8">
-        <form asp-action="Create" method="post" enctype="multipart/form-data">
+        <form asp-action="Create" method="post" enctype="multipart/form-data" id="createProductForm">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group mb-3">
                 <label asp-for="ProductName" class="form-label"></label>
-                <input asp-for="ProductName" class="form-control" placeholder="Enter product name" />
+                <input asp-for="ProductName" class="form-control" placeholder="Enter product name" required />
                 <span asp-validation-for="ProductName" class="text-danger"></span>
             </div>
             <div class="form-group mb-3">
                 <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter product description"></textarea>
+                <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter product description" required></textarea>
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
             <div class="row">
@@ -30,13 +30,12 @@
                         </div>
                         <span asp-validation-for="PriceString" class="text-danger"></span>
                         <div class="form-text">Enter price in dollars (e.g., 29.99) - Required field</div>
-                        <input type="hidden" asp-for="Price" />
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group mb-3">
                         <label asp-for="StockAvailable" class="form-label"></label>
-                        <input asp-for="StockAvailable" class="form-control" type="number" min="0" placeholder="0" />
+                        <input asp-for="StockAvailable" class="form-control" type="number" min="0" placeholder="0" required />
                         <span asp-validation-for="StockAvailable" class="text-danger"></span>
                         <div class="form-text">Enter quantity in stock</div>
                     </div>
@@ -48,7 +47,7 @@
                 <div class="form-text">Upload an image for this product (optional) - JPG, PNG, GIF formats</div>
             </div>
             <div class="form-group">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
                     <i class="fas fa-save"></i> Create Product
                 </button>
                 <a asp-action="Index" class="btn btn-secondary">
@@ -89,12 +88,11 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
     <script>
-        // Form submission validation with enhanced price checking
-        document.querySelector('form').addEventListener('submit', function(e) {
+        // Simple form validation
+        document.getElementById('createProductForm').addEventListener('submit', function(e) {
             const priceInput = document.getElementById('PriceString');
             const priceValue = priceInput.value.trim();
-            console.log('Form submitted with price value:', priceValue);
-
+            
             // Check if price is empty
             if (!priceValue) {
                 e.preventDefault();
@@ -102,7 +100,7 @@
                 priceInput.focus();
                 return false;
             }
-
+            
             // Try to parse the price
             const price = parseFloat(priceValue);
             if (isNaN(price) || price <= 0) {
@@ -111,27 +109,32 @@
                 priceInput.focus();
                 return false;
             }
-
-            console.log('Price validation passed:', price);
+            
+            // If validation passes, show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+            
+            console.log('Form submitted successfully with price:', price);
         });
-
-        // Real-time price validation
+        
+        // Real-time price validation feedback
         document.getElementById('PriceString').addEventListener('input', function(e) {
             const value = e.target.value.trim();
-            const errorSpan = document.querySelector('[data-valmsg-for="PriceString"]');
+            const errorSpan = this.nextElementSibling.nextElementSibling; // Get the validation span
             
             if (value) {
                 const price = parseFloat(value);
                 if (isNaN(price) || price <= 0) {
                     if (errorSpan) errorSpan.textContent = 'Please enter a valid price greater than $0.00';
-                    e.target.style.borderColor = '#dc3545';
+                    this.style.borderColor = '#dc3545';
                 } else {
                     if (errorSpan) errorSpan.textContent = '';
-                    e.target.style.borderColor = '#28a745';
+                    this.style.borderColor = '#28a745';
                 }
             } else {
                 if (errorSpan) errorSpan.textContent = 'Price is required';
-                e.target.style.borderColor = '#dc3545';
+                this.style.borderColor = '#dc3545';
             }
         });
     </script>

@@ -50,19 +50,29 @@ namespace ST10439052_CLDV_POE.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product, IFormFile? imageFile)
         {
+            _logger.LogInformation("Create method called with product: {ProductName}", product.ProductName);
+            
             // Manual price parsing to fix binding issue
             if (Request.Form.TryGetValue("PriceString", out var priceFormValue))
             {
-                _logger.LogInformation("Raw price from form: '{PriceFormValue}'", priceFormValue.ToString());
-                if (decimal.TryParse(priceFormValue, out var parsedPrice))
+                var priceString = priceFormValue.ToString().Trim();
+                _logger.LogInformation("Raw price from form: '{PriceFormValue}'", priceString);
+                
+                if (decimal.TryParse(priceString, out var parsedPrice))
                 {
                     product.PriceString = parsedPrice.ToString("F2");
                     _logger.LogInformation("Successfully parsed price: {Price}", parsedPrice);
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to parse price: {PriceFormValue}", priceFormValue.ToString());
+                    _logger.LogWarning("Failed to parse price: {PriceFormValue}", priceString);
+                    ModelState.AddModelError("PriceString", "Please enter a valid price (e.g., 29.99)");
                 }
+            }
+            else
+            {
+                _logger.LogWarning("PriceString not found in form data");
+                ModelState.AddModelError("PriceString", "Price is required");
             }
 
             _logger.LogInformation("Final product price: {Price}", product.Price);
@@ -82,9 +92,11 @@ namespace ST10439052_CLDV_POE.Controllers
                     {
                         var imageUrl = await _storageService.UploadImageAsync(imageFile, "product-images");
                         product.ImageUrl = imageUrl;
+                        _logger.LogInformation("Image uploaded successfully: {ImageUrl}", imageUrl);
                     }
 
                     await _storageService.AddEntityAsync(product);
+                    _logger.LogInformation("Product created successfully: {ProductName}", product.ProductName);
                     TempData["Success"] = $"Product '{product.ProductName}' created successfully with price {product.Price:C}!";
                     return RedirectToAction(nameof(Index));
                 }
@@ -93,6 +105,11 @@ namespace ST10439052_CLDV_POE.Controllers
                     _logger.LogError(ex, "Error creating product");
                     ModelState.AddModelError("", $"Error creating product: {ex.Message}");
                 }
+            }
+            else
+            {
+                _logger.LogWarning("ModelState is invalid. Errors: {Errors}", 
+                    string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
             }
 
             return View(product);

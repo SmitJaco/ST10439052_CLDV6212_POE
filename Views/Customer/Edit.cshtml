@@ -14,9 +14,14 @@
             <input type="hidden" asp-for="ETag" />
             <input type="hidden" asp-for="Timestamp" />
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> <strong>Customer ID:</strong> @Model.CustomerId.Substring(0, 8)...
-            </div>
+            
+            @if (!string.IsNullOrEmpty(Model?.RowKey))
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Customer ID:</strong> @Model.RowKey.Substring(0, Math.Min(8, Model.RowKey.Length))...
+                </div>
+            }
+            
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group mb-3">
@@ -64,14 +69,20 @@
                 <h6 class="card-title mb-0">Customer Information</h6>
             </div>
             <div class="card-body">
-                <p>
-                    <strong>Created:</strong><br />
-                    <small class="text-muted">@Model.Timestamp?.ToString("MMM dd, yyyy HH:mm")</small>
-                </p>
-                <p>
-                    <strong>Full Customer ID:</strong><br />
-                    <small class="text-muted font-monospace">@Model.CustomerId</small>
-                </p>
+                @if (Model?.Timestamp.HasValue == true)
+                {
+                    <p>
+                        <strong>Created:</strong><br />
+                        <small class="text-muted">@Model.Timestamp.Value.ToString("MMM dd, yyyy HH:mm")</small>
+                    </p>
+                }
+                @if (!string.IsNullOrEmpty(Model?.RowKey))
+                {
+                    <p>
+                        <strong>Full Customer ID:</strong><br />
+                        <small class="text-muted font-monospace">@Model.RowKey</small>
+                    </p>
+                }
             </div>
         </div>
     </div>
