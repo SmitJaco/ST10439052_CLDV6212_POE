@@ -1,7 +1,7 @@
 using Azure;
 using Azure.Data.Tables;
 using System.ComponentModel.DataAnnotations;
-
+//st10439052
 namespace ST10439052_CLDV_POE.Models
 {
     public class Customer : ITableEntity

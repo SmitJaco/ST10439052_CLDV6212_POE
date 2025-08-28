@@ -3,17 +3,367 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ABC Retailers</title>
+    <title>@ViewData["Title"] - TheJimnyHubOfAccesoriesForJimnys</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        :root {
+            --jimny-tan: #D2B48C;
+            --jimny-yellowgreen: #9ACD32;
+            --jimny-white: #FFFFFF;
+            --jimny-red: #DC143C;
+            --jimny-blue: #4169E1;
+            --jimny-dark: #2C3E50;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--jimny-white) 0%, #f8f9fa 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--jimny-white) !important;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .navbar-brand i {
+            color: var(--jimny-yellowgreen);
+            margin-right: 8px;
+        }
+
+        .navbar-dark {
+            background: linear-gradient(135deg, var(--jimny-dark) 0%, var(--jimny-blue) 100%) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .nav-link {
+            color: var(--jimny-white) !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin: 0 5px;
+        }
+
+        .nav-link:hover {
+            background-color: var(--jimny-yellowgreen) !important;
+            color: var(--jimny-dark) !important;
+            transform: translateY(-2px);
+        }
+
+        .nav-link i {
+            margin-right: 6px;
+            color: var(--jimny-tan);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--jimny-blue) 0%, var(--jimny-red) 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(65, 105, 225, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(65, 105, 225, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--jimny-yellowgreen) 0%, var(--jimny-tan) 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(154, 205, 50, 0.4);
+        }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--jimny-blue) 0%, var(--jimny-dark) 100%);
+            color: var(--jimny-white);
+            border: none;
+            padding: 20px;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, var(--jimny-blue) 0%, var(--jimny-tan) 100%);
+            border: none;
+            color: var(--jimny-white);
+            border-radius: 15px;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, var(--jimny-yellowgreen) 0%, var(--jimny-tan) 100%);
+            border: none;
+            color: var(--jimny-dark);
+            border-radius: 15px;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, var(--jimny-tan) 0%, var(--jimny-yellowgreen) 100%);
+            border: none;
+            color: var(--jimny-dark);
+            border-radius: 15px;
+        }
+
+        .table-dark {
+            background: linear-gradient(135deg, var(--jimny-dark) 0%, var(--jimny-blue) 100%);
+        }
+
+        .footer {
+            background: linear-gradient(135deg, var(--jimny-dark) 0%, var(--jimny-blue) 100%);
+            color: var(--jimny-white);
+            border-top: 3px solid var(--jimny-yellowgreen);
+        }
+
+        .footer a {
+            color: var(--jimny-tan);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: var(--jimny-yellowgreen);
+        }
+
+        .badge.bg-success {
+            background-color: var(--jimny-yellowgreen) !important;
+            color: var(--jimny-dark) !important;
+        }
+
+        .badge.bg-warning {
+            background-color: var(--jimny-tan) !important;
+            color: var(--jimny-dark) !important;
+        }
+
+        .badge.bg-danger {
+            background-color: var(--jimny-red) !important;
+        }
+
+        .badge.bg-info {
+            background-color: var(--jimny-blue) !important;
+        }
+
+        .badge.bg-primary {
+            background-color: var(--jimny-blue) !important;
+        }
+
+        .text-success {
+            color: var(--jimny-yellowgreen) !important;
+        }
+
+        .text-primary {
+            color: var(--jimny-blue) !important;
+        }
+
+        .text-warning {
+            color: var(--jimny-tan) !important;
+        }
+
+        .text-danger {
+            color: var(--jimny-red) !important;
+        }
+
+        .form-control:focus {
+            border-color: var(--jimny-blue);
+            box-shadow: 0 0 0 0.2rem rgba(65, 105, 225, 0.25);
+        }
+
+        .form-select:focus {
+            border-color: var(--jimny-blue);
+            box-shadow: 0 0 0 0.2rem rgba(65, 105, 225, 0.25);
+        }
+
+        .btn-outline-primary {
+            color: var(--jimny-blue);
+            border-color: var(--jimny-blue);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--jimny-blue);
+            border-color: var(--jimny-blue);
+        }
+
+        .btn-outline-success {
+            color: var(--jimny-yellowgreen);
+            border-color: var(--jimny-yellowgreen);
+        }
+
+        .btn-outline-success:hover {
+            background-color: var(--jimny-yellowgreen);
+            border-color: var(--jimny-yellowgreen);
+            color: var(--jimny-dark);
+        }
+
+        .btn-outline-warning {
+            color: var(--jimny-tan);
+            border-color: var(--jimny-tan);
+        }
+
+        .btn-outline-warning:hover {
+            background-color: var(--jimny-tan);
+            border-color: var(--jimny-tan);
+            color: var(--jimny-dark);
+        }
+
+        .btn-outline-danger {
+            color: var(--jimny-red);
+            border-color: var(--jimny-red);
+        }
+
+        .btn-outline-danger:hover {
+            background-color: var(--jimny-red);
+            border-color: var(--jimny-red);
+        }
+
+        .btn-outline-info {
+            color: var(--jimny-blue);
+            border-color: var(--jimny-blue);
+        }
+
+        .btn-outline-info:hover {
+            background-color: var(--jimny-blue);
+            border-color: var(--jimny-blue);
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, var(--jimny-tan) 0%, var(--jimny-yellowgreen) 50%, var(--jimny-blue) 100%);
+            color: var(--jimny-white);
+            padding: 80px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .hero-section h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+
+        .hero-section .lead {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .feature-card {
+            background: var(--jimny-white);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--jimny-yellowgreen);
+            box-shadow: 0 20px 40px rgba(154, 205, 50, 0.3);
+        }
+
+        .feature-card i {
+            font-size: 3rem;
+            color: var(--jimny-blue);
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            color: var(--jimny-dark);
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .stats-section {
+            background: linear-gradient(135deg, var(--jimny-dark) 0%, var(--jimny-blue) 100%);
+            color: var(--jimny-white);
+            padding: 60px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-item .number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--jimny-yellowgreen);
+            display: block;
+        }
+
+        .stat-item .label {
+            font-size: 1.1rem;
+            color: var(--jimny-tan);
+            font-weight: 600;
+        }
+
+        .cta-section {
+            background: linear-gradient(135deg, var(--jimny-red) 0%, var(--jimny-blue) 100%);
+            color: var(--jimny-white);
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .cta-section .btn {
+            font-size: 1.2rem;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                    <i class="fas fa-store"></i> ABC Retailers
+                    <i class="fas fa-car"></i> TheJimnyHubOfAccesoriesForJimnys
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
@@ -79,10 +429,10 @@
         <div class="container">
             <div class="row py-3">
                 <div class="col-md-6">
-                    &copy; 2025 - ABC Retailers - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                    &copy; 2025 - TheJimnyHubOfAccesoriesForJimnys - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                 </div>
                 <div class="col-md-6 text-end">
-                    <i class="fas fa-store"></i> Your one-stop shop for the best products
+                    <i class="fas fa-car"></i> Your ultimate destination for Suzuki Jimny accessories
                 </div>
             </div>
         </div>
