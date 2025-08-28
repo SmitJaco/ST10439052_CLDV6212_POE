@@ -356,6 +356,132 @@
             border-radius: 30px;
             font-weight: 600;
         }
+
+        /* Table Layout Improvements */
+        .table-responsive {
+            overflow-x: auto;
+            overflow-y: visible;
+            width: 100%;
+        }
+
+        .table {
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+
+        .table th,
+        .table td {
+            vertical-align: middle;
+            padding: 0.75rem 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        .table thead th {
+            background-color: #343a40;
+            color: white;
+            border-color: #495057;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .table td {
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        /* Specific column widths to prevent cut-off */
+        .table th:nth-child(1), .table td:nth-child(1) { /* Image */
+            width: 80px;
+            min-width: 80px;
+            max-width: 80px;
+        }
+        .table th:nth-child(2), .table td:nth-child(2) { /* Product ID */
+            width: 130px;
+            min-width: 130px;
+        }
+        .table th:nth-child(3), .table td:nth-child(3) { /* Product Name */
+            width: 180px;
+            min-width: 180px;
+        }
+        .table th:nth-child(4), .table td:nth-child(4) { /* Description */
+            width: 250px;
+            min-width: 250px;
+        }
+        .table th:nth-child(5), .table td:nth-child(5) { /* Price */
+            width: 120px;
+            min-width: 120px;
+        }
+        .table th:nth-child(6), .table td:nth-child(6) { /* Stock */
+            width: 140px;
+            min-width: 140px;
+        }
+        .table th:nth-child(7), .table td:nth-child(7) { /* Actions */
+            width: 220px;
+            min-width: 220px;
+            max-width: 220px;
+        }
+
+        /* Button Group Improvements */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            justify-content: flex-start;
+        }
+
+        .d-flex.flex-wrap.gap-1 {
+            gap: 0.25rem !important;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn-group .btn {
+            margin: 0;
+        }
+
+        /* Ensure dropdowns are not cut off */
+        .dropdown-menu {
+            z-index: 1050;
+            min-width: 200px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .dropdown-toggle::after {
+            margin-left: 0.5em;
+        }
+
+        /* Container improvements */
+        .container-fluid {
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        main {
+            padding-top: 20px;
+        }
+
+        /* Alert improvements */
+        .alert {
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        /* Responsive improvements for small screens */
+        @@media (max-width: 768px) {
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+            
+            .btn-sm {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            
+            .table th,
+            .table td {
+                padding: 0.5rem 0.25rem;
+            }
+        }
     </style>
 </head>
 <body>

@@ -9,7 +9,7 @@ namespace ST10439052_CLDV_POE.Models
         public string PartitionKey { get; set; } = "Customer";
         public string RowKey { get; set; } = Guid.NewGuid().ToString();
         public DateTimeOffset? Timestamp { get; set; }
-        public ETag ETag { get; set; }
+        public ETag ETag { get; set; } = ETag.All;
 
         [Display(Name = "Customer ID")]
         public string CustomerId => RowKey;
@@ -33,5 +33,9 @@ namespace ST10439052_CLDV_POE.Models
         [Required]
         [Display(Name = "Shipping Address")]
         public string ShippingAddress { get; set; } = string.Empty;
+
+        // Optional: Custom updated timestamp for business logic
+        [Display(Name = "Last Updated")]
+        public DateTimeOffset? UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     }
 }

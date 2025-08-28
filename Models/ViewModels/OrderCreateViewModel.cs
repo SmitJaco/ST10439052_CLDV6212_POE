@@ -20,7 +20,7 @@ namespace ST10439052_CLDV_POE.Models.ViewModels
         [Required]
         [Display(Name = "Order Date")]
         [DataType(DataType.Date)]
-        public DateTime OrderDate { get; set; } = DateTime.Today;
+        public DateTime OrderDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Unspecified);
 
         [Required]
         [Display(Name = "Status")]

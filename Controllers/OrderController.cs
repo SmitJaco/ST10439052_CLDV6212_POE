@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using ST10439052_CLDV_POE.Models;
 using ST10439052_CLDV_POE.Models.ViewModels;
 using ST10439052_CLDV_POE.Services;
@@ -9,10 +10,12 @@ namespace ST10439052_CLDV_POE.Controllers
     public class OrderController : Controller
     {
         private readonly IAzureStorageService _storageService;
+        private readonly ILogger<OrderController> _logger;
 
-        public OrderController(IAzureStorageService storageService)
+        public OrderController(IAzureStorageService storageService, ILogger<OrderController> logger)
         {
             _storageService = storageService;
+            _logger = logger;
         }
 
         // GET: Order
@@ -80,19 +83,54 @@ namespace ST10439052_CLDV_POE.Controllers
                         return View(model);
                     }
 
-                    // Create order
+                    // Create order with proper UTC DateTime handling
+                    DateTime orderDateUtc;
+                    try
+                    {
+                        // Ensure the date is in UTC format for Azure
+                        if (model.OrderDate.Kind == DateTimeKind.Unspecified)
+                        {
+                            // Convert to UTC assuming it's in local time
+                            orderDateUtc = DateTime.SpecifyKind(model.OrderDate, DateTimeKind.Utc);
+                        }
+                        else
+                        {
+                            // If it's already specified, ensure it's UTC
+                            orderDateUtc = model.OrderDate.ToUniversalTime();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Fallback to current UTC time if date parsing fails
+                        orderDateUtc = DateTime.UtcNow;
+                        ModelState.AddModelError("", $"Date conversion issue: {ex.Message}. Using current date.");
+                    }
+
+                    // Calculate total price explicitly
+                    decimal totalPrice = product.Price * model.Quantity;
+
+                    // Debug logging
+                    _logger.LogInformation("Creating order - Product Price: {Price}, Quantity: {Quantity}, Calculated Total: {Total}",
+                        product.Price, model.Quantity, totalPrice);
+
                     var order = new Order
                     {
                         CustomerId = model.CustomerId,
                         Username = customer.Username,
                         ProductId = model.ProductId,
                         ProductName = product.ProductName,
-                        OrderDate = model.OrderDate,
+                        OrderDate = orderDateUtc,
                         Quantity = model.Quantity,
                         UnitPrice = product.Price,
-                        TotalPrice = product.Price * model.Quantity,
-                        Status = model.Status
+                        TotalPrice = totalPrice,
+                        Status = model.Status,
+                        UpdatedAt = DateTimeOffset.UtcNow
                     };
+
+                    // Ensure TotalPriceString is set for Azure Table Storage compatibility
+                    order.TotalPriceString = totalPrice.ToString("F2");
+
+                    _logger.LogInformation("Order object created - TotalPrice: {TotalPrice}", order.TotalPrice);
 
                     await _storageService.AddEntityAsync(order);
 
@@ -167,7 +205,57 @@ namespace ST10439052_CLDV_POE.Controllers
             {
                 try
                 {
-                    await _storageService.UpdateEntityAsync(order);
+                    // Get the original order to preserve ETag and other system fields
+                    var originalOrder = await _storageService.GetEntityAsync<Order>("Order", order.RowKey);
+                    if (originalOrder == null)
+                    {
+                        return NotFound();
+                    }
+
+                    // Handle DateTime UTC conversion (same as Create method)
+                    DateTime orderDateUtc;
+                    try
+                    {
+                        // Ensure the date is in UTC format for Azure
+                        if (order.OrderDate.Kind == DateTimeKind.Unspecified)
+                        {
+                            // Convert to UTC assuming it's in local time
+                            orderDateUtc = DateTime.SpecifyKind(order.OrderDate, DateTimeKind.Utc);
+                        }
+                        else
+                        {
+                            // If it's already specified, ensure it's UTC
+                            orderDateUtc = order.OrderDate.ToUniversalTime();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Fallback to current UTC time if date parsing fails
+                        orderDateUtc = DateTime.UtcNow;
+                        ModelState.AddModelError("", $"Date conversion issue: {ex.Message}. Using current date.");
+                        return View(order);
+                    }
+
+                    // Recalculate TotalPrice if UnitPrice or Quantity changed
+                    if (order.UnitPrice != originalOrder.UnitPrice || order.Quantity != originalOrder.Quantity)
+                    {
+                        order.TotalPrice = order.UnitPrice * order.Quantity;
+                        _logger.LogInformation("Recalculated TotalPrice: {NewTotal} (was: {OldTotal})",
+                            order.TotalPrice, originalOrder.TotalPrice);
+                    }
+
+                    // Update the order properties
+                    originalOrder.OrderDate = orderDateUtc;
+                    originalOrder.Quantity = order.Quantity;
+                    originalOrder.UnitPrice = order.UnitPrice;
+                    originalOrder.TotalPrice = order.TotalPrice;
+                    originalOrder.TotalPriceString = order.TotalPrice.ToString("F2");
+                    originalOrder.Status = order.Status;
+                    originalOrder.UpdatedAt = DateTimeOffset.UtcNow;
+
+                    _logger.LogInformation("Updating order - Final TotalPrice: {TotalPrice}", originalOrder.TotalPrice);
+
+                    await _storageService.UpdateEntityAsync(originalOrder);
                     TempData["Success"] = "Order updated successfully!";
                     return RedirectToAction(nameof(Index));
                 }
@@ -235,45 +323,6 @@ namespace ST10439052_CLDV_POE.Controllers
             catch
             {
                 return Json(new { success = false });
-            }
-        }
-
-        // POST: Order/UpdateOrderStatus
-        [HttpPost]
-        public async Task<IActionResult> UpdateOrderStatus(string id, string newStatus)
-        {
-            try
-            {
-                var order = await _storageService.GetEntityAsync<Order>("Order", id);
-                if (order == null)
-                {
-                    return Json(new { success = false, message = "Order not found" });
-                }
-
-                var previousStatus = order.Status;
-                order.Status = newStatus;
-                await _storageService.UpdateEntityAsync(order);
-
-                // Send queue message for status update
-                var statusMessage = new
-                {
-                    OrderId = order.OrderId,
-                    CustomerId = order.CustomerId,
-                    CustomerName = order.Username,
-                    ProductName = order.ProductName,
-                    PreviousStatus = previousStatus,
-                    NewStatus = newStatus,
-                    UpdatedDate = DateTime.UtcNow,
-                    UpdatedBy = "System"
-                };
-
-                await _storageService.SendMessageAsync("order-notifications", JsonSerializer.Serialize(statusMessage));
-
-                return Json(new { success = true, message = $"Order status updated to {newStatus}" });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
             }
         }
 

@@ -52,6 +52,7 @@ namespace ST10439052_CLDV_POE.Controllers
             {
                 try
                 {
+                    customer.UpdatedAt = DateTimeOffset.UtcNow;
                     await _storageService.AddEntityAsync(customer);
                     TempData["Success"] = "Customer created successfully!";
                     return RedirectToAction(nameof(Index));
@@ -90,6 +91,7 @@ namespace ST10439052_CLDV_POE.Controllers
             {
                 try
                 {
+                    customer.UpdatedAt = DateTimeOffset.UtcNow;
                     await _storageService.UpdateEntityAsync(customer);
                     TempData["Success"] = "Customer updated successfully!";
                     return RedirectToAction(nameof(Index));

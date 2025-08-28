@@ -23,12 +23,12 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group mb-3">
-                        <label asp-for="PriceString" class="form-label">Price</label>
+                        <label asp-for="Price" class="form-label">Price</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input asp-for="PriceString" name="PriceString" class="form-control" type="text" placeholder="29.99" required />
+                            <input asp-for="Price" class="form-control" type="number" step="0.01" min="0" placeholder="29.99" required id="priceInput" />
                         </div>
-                        <span asp-validation-for="PriceString" class="text-danger"></span>
+                        <span asp-validation-for="Price" class="text-danger"></span>
                         <div class="form-text">Enter price in dollars (e.g., 29.99) - Required field</div>
                     </div>
                 </div>
@@ -90,51 +90,36 @@
     <script>
         // Simple form validation
         document.getElementById('createProductForm').addEventListener('submit', function(e) {
-            const priceInput = document.getElementById('PriceString');
-            const priceValue = priceInput.value.trim();
-            
-            // Check if price is empty
-            if (!priceValue) {
-                e.preventDefault();
-                alert('Please enter a price for the product');
-                priceInput.focus();
-                return false;
-            }
-            
-            // Try to parse the price
-            const price = parseFloat(priceValue);
-            if (isNaN(price) || price <= 0) {
+            const priceInput = document.getElementById('priceInput');
+            const priceValue = parseFloat(priceInput.value);
+
+            // Check if price is valid
+            if (isNaN(priceValue) || priceValue <= 0) {
                 e.preventDefault();
                 alert('Please enter a valid price greater than $0.00');
                 priceInput.focus();
                 return false;
             }
-            
+
             // If validation passes, show loading state
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-            
-            console.log('Form submitted successfully with price:', price);
+
+            console.log('Form submitted successfully with price:', priceValue);
         });
         
         // Real-time price validation feedback
-        document.getElementById('PriceString').addEventListener('input', function(e) {
-            const value = e.target.value.trim();
-            const errorSpan = this.nextElementSibling.nextElementSibling; // Get the validation span
-            
-            if (value) {
-                const price = parseFloat(value);
-                if (isNaN(price) || price <= 0) {
-                    if (errorSpan) errorSpan.textContent = 'Please enter a valid price greater than $0.00';
-                    this.style.borderColor = '#dc3545';
-                } else {
-                    if (errorSpan) errorSpan.textContent = '';
-                    this.style.borderColor = '#28a745';
-                }
-            } else {
-                if (errorSpan) errorSpan.textContent = 'Price is required';
+        document.getElementById('priceInput').addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            const errorSpan = this.parentElement.parentElement.querySelector('.text-danger');
+
+            if (isNaN(value) || value <= 0) {
+                if (errorSpan) errorSpan.textContent = 'Please enter a valid price greater than $0.00';
                 this.style.borderColor = '#dc3545';
+            } else {
+                if (errorSpan) errorSpan.textContent = '';
+                this.style.borderColor = '#28a745';
             }
         });
     </script>

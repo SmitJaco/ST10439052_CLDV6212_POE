@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
@@ -125,8 +126,17 @@ namespace ST10439052_CLDV_POE.Services
 
             try
             {
+                // Handle empty ETag by using ETag.All
+                var etag = entity.ETag;
+                if (etag == default(ETag) || string.IsNullOrEmpty(etag.ToString()))
+                {
+                    etag = ETag.All;
+                    _logger.LogWarning("Empty ETag detected for {EntityType} with RowKey {RowKey}, using ETag.All", 
+                        typeof(T).Name, entity.RowKey);
+                }
+
                 // Use IfMatch condition for optimistic concurrency
-                await tableClient.UpdateEntityAsync(entity, entity.ETag, TableUpdateMode.Replace);
+                await tableClient.UpdateEntityAsync(entity, etag, TableUpdateMode.Replace);
                 return entity;
             }
             catch (Azure.RequestFailedException ex) when (ex.Status == 412)

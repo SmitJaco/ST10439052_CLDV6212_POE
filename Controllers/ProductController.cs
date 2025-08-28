@@ -50,32 +50,7 @@ namespace ST10439052_CLDV_POE.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product, IFormFile? imageFile)
         {
-            _logger.LogInformation("Create method called with product: {ProductName}", product.ProductName);
-            
-            // Manual price parsing to fix binding issue
-            if (Request.Form.TryGetValue("PriceString", out var priceFormValue))
-            {
-                var priceString = priceFormValue.ToString().Trim();
-                _logger.LogInformation("Raw price from form: '{PriceFormValue}'", priceString);
-                
-                if (decimal.TryParse(priceString, out var parsedPrice))
-                {
-                    product.PriceString = parsedPrice.ToString("F2");
-                    _logger.LogInformation("Successfully parsed price: {Price}", parsedPrice);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to parse price: {PriceFormValue}", priceString);
-                    ModelState.AddModelError("PriceString", "Please enter a valid price (e.g., 29.99)");
-                }
-            }
-            else
-            {
-                _logger.LogWarning("PriceString not found in form data");
-                ModelState.AddModelError("PriceString", "Price is required");
-            }
-
-            _logger.LogInformation("Final product price: {Price}", product.Price);
+            _logger.LogInformation("Create method called with product: {ProductName}, Price: {Price}", product.ProductName, product.Price);
 
             if (ModelState.IsValid)
             {
@@ -83,7 +58,7 @@ namespace ST10439052_CLDV_POE.Controllers
                 {
                     if (product.Price <= 0)
                     {
-                        ModelState.AddModelError("PriceString", "Price must be greater than $0.00");
+                        ModelState.AddModelError("Price", "Price must be greater than $0.00");
                         return View(product);
                     }
 
@@ -94,6 +69,9 @@ namespace ST10439052_CLDV_POE.Controllers
                         product.ImageUrl = imageUrl;
                         _logger.LogInformation("Image uploaded successfully: {ImageUrl}", imageUrl);
                     }
+
+                    // Set the updated timestamp
+                    product.UpdatedAt = DateTimeOffset.UtcNow;
 
                     await _storageService.AddEntityAsync(product);
                     _logger.LogInformation("Product created successfully: {ProductName}", product.ProductName);
@@ -108,7 +86,7 @@ namespace ST10439052_CLDV_POE.Controllers
             }
             else
             {
-                _logger.LogWarning("ModelState is invalid. Errors: {Errors}", 
+                _logger.LogWarning("ModelState is invalid. Errors: {Errors}",
                     string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
             }
 
@@ -137,20 +115,19 @@ namespace ST10439052_CLDV_POE.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Product product, IFormFile? imageFile)
         {
-            // Manual price parsing for edit too
-            if (Request.Form.TryGetValue("PriceString", out var priceFormValue))
-            {
-                if (decimal.TryParse(priceFormValue, out var parsedPrice))
-                {
-                    product.PriceString = parsedPrice.ToString("F2");
-                    _logger.LogInformation("Edit: Successfully parsed price: {Price}", parsedPrice);
-                }
-            }
+            _logger.LogInformation("Edit method called with ProductName: {ProductName}, Price: {Price}, RowKey: {RowKey}",
+                product.ProductName, product.Price, product.RowKey);
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    if (product.Price <= 0)
+                    {
+                        ModelState.AddModelError("Price", "Price must be greater than $0.00");
+                        return View(product);
+                    }
+
                     // Get the original product to preserve ETag
                     var originalProduct = await _storageService.GetEntityAsync<Product>("Product", product.RowKey);
                     if (originalProduct == null)
@@ -161,7 +138,7 @@ namespace ST10439052_CLDV_POE.Controllers
                     // Update properties but keep the original ETag
                     originalProduct.ProductName = product.ProductName;
                     originalProduct.Description = product.Description;
-                    originalProduct.PriceString = product.PriceString;
+                    originalProduct.Price = product.Price;
                     originalProduct.StockAvailable = product.StockAvailable;
 
                     // Upload new image if provided
@@ -169,10 +146,14 @@ namespace ST10439052_CLDV_POE.Controllers
                     {
                         var imageUrl = await _storageService.UploadImageAsync(imageFile, "product-images");
                         originalProduct.ImageUrl = imageUrl;
+                        _logger.LogInformation("Image uploaded: {ImageUrl}", imageUrl);
                     }
 
+                    // Update the timestamp
+                    originalProduct.UpdatedAt = DateTimeOffset.UtcNow;
+
                     await _storageService.UpdateEntityAsync(originalProduct);
-                    TempData["Success"] = "Product updated successfully!";
+                    TempData["Success"] = $"Product updated successfully! Price: {originalProduct.Price:C}";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -181,6 +162,12 @@ namespace ST10439052_CLDV_POE.Controllers
                     ModelState.AddModelError("", $"Error updating product: {ex.Message}");
                 }
             }
+            else
+            {
+                _logger.LogWarning("ModelState is invalid. Errors: {Errors}",
+                    string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+            }
+
             return View(product);
         }
 

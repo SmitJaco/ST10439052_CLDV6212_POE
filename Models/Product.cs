@@ -9,7 +9,7 @@ namespace ST10439052_CLDV_POE.Models
         public string PartitionKey { get; set; } = "Product";
         public string RowKey { get; set; } = Guid.NewGuid().ToString();
         public DateTimeOffset? Timestamp { get; set; }
-        public ETag ETag { get; set; }
+        public ETag ETag { get; set; } = ETag.All;
 
         [Display(Name = "Product ID")]
         public string ProductId => RowKey;
@@ -24,19 +24,14 @@ namespace ST10439052_CLDV_POE.Models
 
         [Required(ErrorMessage = "Price is required")]
         [Display(Name = "Price")]
-        public string PriceString { get; set; } = string.Empty;
+        public decimal Price { get; set; }
 
-        [Display(Name = "Price")]
-        public decimal Price
+        // Keep PriceString for backward compatibility with Azure Table Storage
+        [Display(Name = "Price String")]
+        public string PriceString
         {
-            get
-            {
-                return decimal.TryParse(PriceString, out var result) ? result : 0m;
-            }
-            set
-            {
-                PriceString = value.ToString("F2");
-            }
+            get => Price.ToString("F2");
+            set => Price = decimal.TryParse(value, out var result) ? result : 0m;
         }
 
         [Required]
@@ -45,5 +40,9 @@ namespace ST10439052_CLDV_POE.Models
 
         [Display(Name = "Image URL")]
         public string ImageUrl { get; set; } = string.Empty;
+
+        // Optional: Custom updated timestamp for business logic
+        [Display(Name = "Last Updated")]
+        public DateTimeOffset? UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     }
 }
