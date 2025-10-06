@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 // Add Azure Storage Service
-builder.Services.AddScoped<IAzureStorageService, AzureStorageService>();
+builder.Services.AddSingleton<IAzureStorageService, AzureStorageService>();
 
 var app = builder.Build();
 

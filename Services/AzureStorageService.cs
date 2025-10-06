@@ -3,6 +3,7 @@ using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using Azure.Storage.Files.Shares;
+using Azure.Storage.Sas;
 using ST10439052_CLDV_POE.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,8 @@ namespace ST10439052_CLDV_POE.Services
         private readonly QueueServiceClient _queueServiceClient;
         private readonly ShareServiceClient _shareServiceClient;
         private readonly ILogger<AzureStorageService> _logger;
+        private static readonly object _initLock = new();
+        private static bool _initialized = false;
 
         public AzureStorageService(
             IConfiguration configuration,
@@ -30,8 +33,19 @@ namespace ST10439052_CLDV_POE.Services
             _queueServiceClient = new QueueServiceClient(connectionString);
             _shareServiceClient = new ShareServiceClient(connectionString);
             _logger = logger;
-            
-            InitializeStorageAsync().Wait();
+
+            // Ensure initialization runs only once
+            if (!_initialized)
+            {
+                lock (_initLock)
+                {
+                    if (!_initialized)
+                    {
+                        InitializeStorageAsync().GetAwaiter().GetResult();
+                        _initialized = true;
+                    }
+                }
+            }
         }
 
         private async Task InitializeStorageAsync()
@@ -195,7 +209,27 @@ namespace ST10439052_CLDV_POE.Services
                 
                 using var stream = file.OpenReadStream();
                 await blobClient.UploadAsync(stream, overwrite: true);
-                
+
+                // If blobs are private, return a read SAS URL so images can be displayed in the UI
+                try
+                {
+                    if (blobClient.CanGenerateSasUri)
+                    {
+                        var sasBuilder = new BlobSasBuilder(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddDays(7))
+                        {
+                            BlobContainerName = containerName,
+                            BlobName = fileName
+                        };
+                        var sasUri = blobClient.GenerateSasUri(sasBuilder);
+                        return sasUri.ToString();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to generate SAS URL for blob {BlobName} in {Container}", fileName, containerName);
+                }
+
+                // Fallback to direct URI (will require auth if container is private)
                 return blobClient.Uri.ToString();
             }
             catch (Exception ex)
