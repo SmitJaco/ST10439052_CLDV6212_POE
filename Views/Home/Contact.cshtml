@@ -1,0 +1,60 @@
+@{
+    ViewData["Title"] = "Contact Us";
+}
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title mb-0">
+                        <i class="fas fa-envelope-open-text"></i> Contact Us
+                    </h1>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <h3>ABC Retailers</h3>
+                            <p class="mb-1"><strong>Address:</strong> 123 ABC Retailers Road, Johannesburg, 2000, South Africa</p>
+                            <p class="mb-1"><strong>Email:</strong> <a href="mailto:contact@abcretailers.co.za">contact@abcretailers.co.za</a></p>
+                            <p class="mb-3"><strong>Contact Number:</strong> +27 10 123 4567</p>
+
+                            <h4>Operational Hours</h4>
+                            <ul>
+                                <li>Monday - Friday: 08:00 - 17:00</li>
+                                <li>Saturday: 09:00 - 13:00</li>
+                                <li>Sunday & Public Holidays: Closed</li>
+                            </ul>
+                        </div>
+                        <div class="col-lg-6">
+                            <h4 class="mb-2">Find Us on the Map</h4>
+                            <div class="ratio ratio-16x9 mb-4">
+                                <iframe
+                                    src="https://www.google.com/maps?q=123%20ABC%20Retailers%20Road%2C%20Johannesburg%2C%202000%2C%20South%20Africa&output=embed"
+                                    width="600"
+                                    height="450"
+                                    style="border:0;"
+                                    allowfullscreen=""
+                                    loading="lazy"
+                                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            </div>
+
+                            <h4 class="mb-2">Enquiry Form</h4>
+                            <div class="ratio ratio-16x9">
+                                <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSfdummyFormIdForEnquiries/viewform?embedded=true" width="640" height="800" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+                            <i class="fas fa-home"></i> Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+

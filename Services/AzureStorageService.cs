@@ -46,12 +46,22 @@ namespace ST10439052_CLDV_POE.Services
                 await _tableServiceClient.CreateTableIfNotExistsAsync("Orders");
                 _logger.LogInformation("Tables created successfully");
                 
-                // Create blob containers with retry logic
+                // Create blob containers with retry logic (private by default)
                 var productImagesContainer = _blobServiceClient.GetBlobContainerClient("product-images");
-                await productImagesContainer.CreateIfNotExistsAsync(Azure.Storage.Blobs.Models.PublicAccessType.Blob);
-                
+                await productImagesContainer.CreateIfNotExistsAsync();
+
+                // Try to set public access for product images if the account permits it
+                try
+                {
+                    await productImagesContainer.SetAccessPolicyAsync(Azure.Storage.Blobs.Models.PublicAccessType.Blob);
+                }
+                catch (Azure.RequestFailedException ex) when (ex.ErrorCode == "PublicAccessNotPermitted" || ex.Status == 409)
+                {
+                    _logger.LogWarning("Public access not permitted for container 'product-images'. Continuing with private access.");
+                }
+
                 var paymentProofsContainer = _blobServiceClient.GetBlobContainerClient("payment-proofs");
-                await paymentProofsContainer.CreateIfNotExistsAsync(Azure.Storage.Blobs.Models.PublicAccessType.None);
+                await paymentProofsContainer.CreateIfNotExistsAsync();
                 _logger.LogInformation("Blob containers created successfully");
                 
                 // Create queues
@@ -167,8 +177,18 @@ namespace ST10439052_CLDV_POE.Services
             try
             {
                 var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-                // Ensure container exists
-                await containerClient.CreateIfNotExistsAsync(Azure.Storage.Blobs.Models.PublicAccessType.Blob);
+                // Ensure container exists (private by default)
+                await containerClient.CreateIfNotExistsAsync();
+
+                // Try to set public access for images if allowed
+                try
+                {
+                    await containerClient.SetAccessPolicyAsync(Azure.Storage.Blobs.Models.PublicAccessType.Blob);
+                }
+                catch (Azure.RequestFailedException ex) when (ex.ErrorCode == "PublicAccessNotPermitted" || ex.Status == 409)
+                {
+                    _logger.LogWarning("Public access not permitted for container '{ContainerName}'. Continuing with private access.", containerName);
+                }
                 
                 var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
                 var blobClient = containerClient.GetBlobClient(fileName);
@@ -190,8 +210,8 @@ namespace ST10439052_CLDV_POE.Services
             try
             {
                 var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-                // Ensure container exists
-                await containerClient.CreateIfNotExistsAsync(Azure.Storage.Blobs.Models.PublicAccessType.None);
+                // Ensure container exists (private by default)
+                await containerClient.CreateIfNotExistsAsync();
                 
                 var fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{file.FileName}";
                 var blobClient = containerClient.GetBlobClient(fileName);
