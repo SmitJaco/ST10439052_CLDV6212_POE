@@ -4,6 +4,7 @@ using ST10439052_CLDV_POE.Models;
 using ST10439052_CLDV_POE.Models.ViewModels;
 using ST10439052_CLDV_POE.Services;
 using System.Text.Json;
+using ST10439052_CLDV_POE.Configuration;
 
 namespace ST10439052_CLDV_POE.Controllers
 {
@@ -151,7 +152,7 @@ namespace ST10439052_CLDV_POE.Controllers
                         Status = order.Status
                     };
 
-                    await _storageService.SendMessageAsync("order-notifications", JsonSerializer.Serialize(orderMessage));
+                    await _storageService.SendMessageAsync(StorageNames.QueueOrderNotifications, JsonSerializer.Serialize(orderMessage));
 
                     // Send stock update message
                     var stockMessage = new
@@ -164,7 +165,7 @@ namespace ST10439052_CLDV_POE.Controllers
                         UpdateDate = DateTime.UtcNow
                     };
 
-                    await _storageService.SendMessageAsync("stock-updates", JsonSerializer.Serialize(stockMessage));
+                    await _storageService.SendMessageAsync(StorageNames.QueueStockUpdates, JsonSerializer.Serialize(stockMessage));
 
                     TempData["Success"] = "Order created successfully!";
                     return RedirectToAction(nameof(Index));

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ST10439052_CLDV_POE.Models;
 using ST10439052_CLDV_POE.Services;
+using ST10439052_CLDV_POE.Configuration;
 
 namespace ST10439052_CLDV_POE.Controllers
 {
@@ -65,7 +66,7 @@ namespace ST10439052_CLDV_POE.Controllers
                     // Upload image if provided
                     if (imageFile != null && imageFile.Length > 0)
                     {
-                        var imageUrl = await _storageService.UploadImageAsync(imageFile, "product-images");
+                        var imageUrl = await _storageService.UploadImageAsync(imageFile, StorageNames.ContainerProductImages);
                         product.ImageUrl = imageUrl;
                         _logger.LogInformation("Image uploaded successfully: {ImageUrl}", imageUrl);
                     }
@@ -144,7 +145,7 @@ namespace ST10439052_CLDV_POE.Controllers
                     // Upload new image if provided
                     if (imageFile != null && imageFile.Length > 0)
                     {
-                        var imageUrl = await _storageService.UploadImageAsync(imageFile, "product-images");
+                        var imageUrl = await _storageService.UploadImageAsync(imageFile, StorageNames.ContainerProductImages);
                         originalProduct.ImageUrl = imageUrl;
                         _logger.LogInformation("Image uploaded: {ImageUrl}", imageUrl);
                     }

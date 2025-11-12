@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "ST10439052_CLDV_POE.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "..\\ABCRetailers.Functions\\ABCRetailers.Functions.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

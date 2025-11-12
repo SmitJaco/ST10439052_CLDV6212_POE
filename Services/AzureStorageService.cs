@@ -4,9 +4,10 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using Azure.Storage.Files.Shares;
 using Azure.Storage.Sas;
-using ST10439052_CLDV_POE.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ST10439052_CLDV_POE.Models;
+using ST10439052_CLDV_POE.Configuration;
 using System.Text.Json;
 
 namespace ST10439052_CLDV_POE.Services
@@ -21,20 +22,21 @@ namespace ST10439052_CLDV_POE.Services
         private static readonly object _initLock = new();
         private static bool _initialized = false;
 
-        public AzureStorageService(
-            IConfiguration configuration,
-            ILogger<AzureStorageService> logger)
+        public AzureStorageService(IConfiguration configuration, ILogger<AzureStorageService> logger)
         {
-            string connectionString = configuration.GetConnectionString("AzureStorage")
+            var connectionString =
+                configuration["AzureWebJobsStorage"]
+                ?? configuration.GetConnectionString("AzureStorage")
+                ?? configuration["Storage:ConnectionString"]
                 ?? throw new InvalidOperationException("Azure Storage connection string not found");
-            
+
             _tableServiceClient = new TableServiceClient(connectionString);
             _blobServiceClient = new BlobServiceClient(connectionString);
             _queueServiceClient = new QueueServiceClient(connectionString);
             _shareServiceClient = new ShareServiceClient(connectionString);
             _logger = logger;
 
-            // Ensure initialization runs only once
+            // Initialize storage only once
             if (!_initialized)
             {
                 lock (_initLock)
@@ -47,229 +49,154 @@ namespace ST10439052_CLDV_POE.Services
                 }
             }
         }
-
+        //st10439052
         private async Task InitializeStorageAsync()
         {
             try
             {
-                _logger.LogInformation("Starting Azure Storage initialization...");
-                
+                _logger.LogInformation("Initializing Azure Storage...");
                 // Create tables
                 await _tableServiceClient.CreateTableIfNotExistsAsync("Customers");
                 await _tableServiceClient.CreateTableIfNotExistsAsync("Products");
                 await _tableServiceClient.CreateTableIfNotExistsAsync("Orders");
-                _logger.LogInformation("Tables created successfully");
-                
-                // Create blob containers with retry logic (private by default)
-                var productImagesContainer = _blobServiceClient.GetBlobContainerClient("product-images");
-                await productImagesContainer.CreateIfNotExistsAsync();
 
-                // Try to set public access for product images if the account permits it
-                try
+                var containers = new[]
                 {
-                    await productImagesContainer.SetAccessPolicyAsync(Azure.Storage.Blobs.Models.PublicAccessType.Blob);
-                }
-                catch (Azure.RequestFailedException ex) when (ex.ErrorCode == "PublicAccessNotPermitted" || ex.Status == 409)
+                    StorageNames.ContainerUploads,
+                    StorageNames.ContainerProductImages,
+                    StorageNames.ContainerPaymentProofs
+                };
+
+                foreach (var containerName in containers)
                 {
-                    _logger.LogWarning("Public access not permitted for container 'product-images'. Continuing with private access.");
+                    var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+                    await containerClient.CreateIfNotExistsAsync();
                 }
 
-                var paymentProofsContainer = _blobServiceClient.GetBlobContainerClient("payment-proofs");
-                await paymentProofsContainer.CreateIfNotExistsAsync();
-                _logger.LogInformation("Blob containers created successfully");
-                
-                // Create queues
-                var orderQueue = _queueServiceClient.GetQueueClient("order-notifications");
-                await orderQueue.CreateIfNotExistsAsync();
-                
-                var stockQueue = _queueServiceClient.GetQueueClient("stock-updates");
-                await stockQueue.CreateIfNotExistsAsync();
-                _logger.LogInformation("Queues created successfully");
-                
+                // Create queues (including poison queues)
+                var queues = new[]
+                {
+                    StorageNames.QueueOrders,
+                    StorageNames.QueueOrderNotifications,
+                    StorageNames.QueueStockUpdates,
+                    StorageNames.QueueOrderNotificationsPoison,
+                    StorageNames.QueueStockUpdatesPoison
+                };
+
+                foreach (var queueName in queues)
+                {
+                    var queueClient = _queueServiceClient.GetQueueClient(queueName);
+                    await queueClient.CreateIfNotExistsAsync();
+                }
+
                 // Create file share
-                var contractsShare = _shareServiceClient.GetShareClient("contracts");
-                await contractsShare.CreateIfNotExistsAsync();
-                
-                // Create payments directory in contracts share
-                var contractsDirectory = contractsShare.GetDirectoryClient("payments");
-                await contractsDirectory.CreateIfNotExistsAsync();
-                _logger.LogInformation("File shares created successfully");
-                
+                var shareClient = _shareServiceClient.GetShareClient(StorageNames.ShareContracts);
+                await shareClient.CreateIfNotExistsAsync();
+                var directoryClient = shareClient.GetDirectoryClient(StorageNames.ShareContractsPaymentsDir);
+                await directoryClient.CreateIfNotExistsAsync();
+
                 _logger.LogInformation("Azure Storage initialization completed successfully");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to initialize Azure Storage: {Message}", ex.Message);
-                throw; // Re-throw to make the error visible
+                throw;
             }
         }
 
-        // Table Operations
+        #region Table Operations
         public async Task<List<T>> GetAllEntitiesAsync<T>() where T : class, ITableEntity, new()
         {
-            var tableName = GetTableName<T>();
-            var tableClient = _tableServiceClient.GetTableClient(tableName);
+            var tableClient = _tableServiceClient.GetTableClient(GetTableName<T>());
             var entities = new List<T>();
-            
-            await foreach (var entity in tableClient.QueryAsync<T>())
-            {
-                entities.Add(entity);
-            }
-            
+            await foreach (var entity in tableClient.QueryAsync<T>()) entities.Add(entity);
             return entities;
         }
 
         public async Task<T> GetEntityAsync<T>(string partitionKey, string rowKey) where T : class, ITableEntity, new()
         {
-            var tableName = GetTableName<T>();
-            var tableClient = _tableServiceClient.GetTableClient(tableName);
-            
             try
             {
+                var tableClient = _tableServiceClient.GetTableClient(GetTableName<T>());
                 var response = await tableClient.GetEntityAsync<T>(partitionKey, rowKey);
                 return response.Value;
             }
-            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
-            {
-                return null;
-            }
+            catch (RequestFailedException ex) when (ex.Status == 404) { return null; }
         }
 
         public async Task<T> AddEntityAsync<T>(T entity) where T : class, ITableEntity
         {
-            var tableName = GetTableName<T>();
-            var tableClient = _tableServiceClient.GetTableClient(tableName);
+            var tableClient = _tableServiceClient.GetTableClient(GetTableName<T>());
             await tableClient.AddEntityAsync(entity);
             return entity;
         }
 
         public async Task<T> UpdateEntityAsync<T>(T entity) where T : class, ITableEntity
         {
-            var tableName = GetTableName<T>();
-            var tableClient = _tableServiceClient.GetTableClient(tableName);
-
-            try
-            {
-                // Handle empty ETag by using ETag.All
-                var etag = entity.ETag;
-                if (etag == default(ETag) || string.IsNullOrEmpty(etag.ToString()))
-                {
-                    etag = ETag.All;
-                    _logger.LogWarning("Empty ETag detected for {EntityType} with RowKey {RowKey}, using ETag.All", 
-                        typeof(T).Name, entity.RowKey);
-                }
-
-                // Use IfMatch condition for optimistic concurrency
-                await tableClient.UpdateEntityAsync(entity, etag, TableUpdateMode.Replace);
-                return entity;
-            }
-            catch (Azure.RequestFailedException ex) when (ex.Status == 412)
-            {
-                // Precondition failed – entity was modified by another process
-                _logger.LogWarning("Entity update failed due to ETag mismatch for {EntityType} with RowKey {RowKey}",
-                    typeof(T).Name, entity.RowKey);
-                throw new InvalidOperationException("The entity was modified by another process. Please refresh and try again.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating entity {EntityType} with RowKey {RowKey}: {Message}",
-                    typeof(T).Name, entity.RowKey, ex.Message);
-                throw;
-            }
+            var tableClient = _tableServiceClient.GetTableClient(GetTableName<T>());
+            var etag = entity.ETag == default || string.IsNullOrEmpty(entity.ETag.ToString()) ? ETag.All : entity.ETag;
+            await tableClient.UpdateEntityAsync(entity, etag, TableUpdateMode.Replace);
+            return entity;
         }
 
         public async Task DeleteEntityAsync<T>(string partitionKey, string rowKey) where T : class, ITableEntity, new()
         {
-            var tableName = GetTableName<T>();
-            var tableClient = _tableServiceClient.GetTableClient(tableName);
+            var tableClient = _tableServiceClient.GetTableClient(GetTableName<T>());
             await tableClient.DeleteEntityAsync(partitionKey, rowKey);
         }
 
-        // Blob Operations
+        private static string GetTableName<T>() => typeof(T).Name switch
+        {
+            nameof(Customer) => "Customers",
+            nameof(Product) => "Products",
+            nameof(Order) => "Orders",
+            _ => typeof(T).Name + "s"
+        };
+        #endregion
+
+        #region Blob Operations
         public async Task<string> UploadImageAsync(IFormFile file, string containerName)
         {
-            try
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            await containerClient.CreateIfNotExistsAsync();
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var blobClient = containerClient.GetBlobClient(fileName);
+
+            using var stream = file.OpenReadStream();
+            await blobClient.UploadAsync(stream, overwrite: true);
+
+            if (blobClient.CanGenerateSasUri)
             {
-                var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-                // Ensure container exists (private by default)
-                await containerClient.CreateIfNotExistsAsync();
-
-                // Try to set public access for images if allowed
-                try
+                var sasUri = blobClient.GenerateSasUri(new BlobSasBuilder(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddDays(7))
                 {
-                    await containerClient.SetAccessPolicyAsync(Azure.Storage.Blobs.Models.PublicAccessType.Blob);
-                }
-                catch (Azure.RequestFailedException ex) when (ex.ErrorCode == "PublicAccessNotPermitted" || ex.Status == 409)
-                {
-                    _logger.LogWarning("Public access not permitted for container '{ContainerName}'. Continuing with private access.", containerName);
-                }
-                
-                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-                var blobClient = containerClient.GetBlobClient(fileName);
-                
-                using var stream = file.OpenReadStream();
-                await blobClient.UploadAsync(stream, overwrite: true);
-
-                // If blobs are private, return a read SAS URL so images can be displayed in the UI
-                try
-                {
-                    if (blobClient.CanGenerateSasUri)
-                    {
-                        var sasBuilder = new BlobSasBuilder(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddDays(7))
-                        {
-                            BlobContainerName = containerName,
-                            BlobName = fileName
-                        };
-                        var sasUri = blobClient.GenerateSasUri(sasBuilder);
-                        return sasUri.ToString();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to generate SAS URL for blob {BlobName} in {Container}", fileName, containerName);
-                }
-
-                // Fallback to direct URI (will require auth if container is private)
-                return blobClient.Uri.ToString();
+                    BlobContainerName = containerName,
+                    BlobName = fileName
+                });
+                return sasUri.ToString();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error uploading image to container {ContainerName}: {Message}", containerName, ex.Message);
-                throw;
-            }
+
+            return blobClient.Uri.ToString();
         }
 
         public async Task<string> UploadFileAsync(IFormFile file, string containerName)
         {
-            try
-            {
-                var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-                // Ensure container exists (private by default)
-                await containerClient.CreateIfNotExistsAsync();
-                
-                var fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{file.FileName}";
-                var blobClient = containerClient.GetBlobClient(fileName);
-                
-                using var stream = file.OpenReadStream();
-                await blobClient.UploadAsync(stream, overwrite: true);
-                
-                return fileName;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error uploading file to container {ContainerName}: {Message}", containerName, ex.Message);
-                throw;
-            }
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            await containerClient.CreateIfNotExistsAsync();
+            var fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{file.FileName}";
+            var blobClient = containerClient.GetBlobClient(fileName);
+            using var stream = file.OpenReadStream();
+            await blobClient.UploadAsync(stream, overwrite: true);
+            return fileName;
         }
 
         public async Task DeleteBlobAsync(string blobName, string containerName)
         {
-            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-            var blobClient = containerClient.GetBlobClient(blobName);
+            var blobClient = _blobServiceClient.GetBlobContainerClient(containerName).GetBlobClient(blobName);
             await blobClient.DeleteIfExistsAsync();
         }
+        #endregion
 
-        // Queue Operations
+        #region Queue Operations
         public async Task SendMessageAsync(string queueName, string message)
         {
             var queueClient = _queueServiceClient.GetQueueClient(queueName);
@@ -280,24 +207,20 @@ namespace ST10439052_CLDV_POE.Services
         {
             var queueClient = _queueServiceClient.GetQueueClient(queueName);
             var response = await queueClient.ReceiveMessageAsync();
-
             if (response.Value != null)
             {
                 await queueClient.DeleteMessageAsync(response.Value.MessageId, response.Value.PopReceipt);
                 return response.Value.MessageText;
             }
-
             return null;
         }
+        #endregion
 
-        // File Share Operations
+        #region File Share Operations
         public async Task<string> UploadToFileShareAsync(IFormFile file, string shareName, string directoryName = "")
         {
             var shareClient = _shareServiceClient.GetShareClient(shareName);
-            var directoryClient = string.IsNullOrEmpty(directoryName)
-                ? shareClient.GetRootDirectoryClient()
-                : shareClient.GetDirectoryClient(directoryName);
-
+            var directoryClient = string.IsNullOrEmpty(directoryName) ? shareClient.GetRootDirectoryClient() : shareClient.GetDirectoryClient(directoryName);
             await directoryClient.CreateIfNotExistsAsync();
 
             var fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{file.FileName}";
@@ -313,28 +236,14 @@ namespace ST10439052_CLDV_POE.Services
         public async Task<byte[]> DownloadFromFileShareAsync(string shareName, string fileName, string directoryName = "")
         {
             var shareClient = _shareServiceClient.GetShareClient(shareName);
-            var directoryClient = string.IsNullOrEmpty(directoryName)
-                ? shareClient.GetRootDirectoryClient()
-                : shareClient.GetDirectoryClient(directoryName);
-
+            var directoryClient = string.IsNullOrEmpty(directoryName) ? shareClient.GetRootDirectoryClient() : shareClient.GetDirectoryClient(directoryName);
             var fileClient = directoryClient.GetFileClient(fileName);
-            var response = await fileClient.DownloadAsync();
 
+            var response = await fileClient.DownloadAsync();
             using var memoryStream = new MemoryStream();
             await response.Value.Content.CopyToAsync(memoryStream);
-
             return memoryStream.ToArray();
         }
-
-        private static string GetTableName<T>()
-        {
-            return typeof(T).Name switch
-            {
-                nameof(Customer) => "Customers",
-                nameof(Product) => "Products",
-                nameof(Order) => "Orders",
-                _ => typeof(T).Name + "s"
-            };
-        }
+        #endregion
     }
 }

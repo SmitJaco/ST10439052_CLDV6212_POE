@@ -10,6 +10,9 @@ builder.Services.AddSingleton<IAzureStorageService, AzureStorageService>();
 
 var app = builder.Build();
 
+// Force initialize Azure storage (tables/containers/queues) at startup
+_ = app.Services.GetRequiredService<IAzureStorageService>();
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
