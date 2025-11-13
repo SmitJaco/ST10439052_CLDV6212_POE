@@ -36,6 +36,9 @@ builder.Services.AddSingleton<IAzureStorageService, AzureStorageService>();
 
 // Add Authentication Service
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Add Cart Service
+builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddAzureClients(clientBuilder =>
 {
     clientBuilder.AddBlobServiceClient(builder.Configuration["StorageConnection:blobServiceUri"]!).WithName("StorageConnection");
