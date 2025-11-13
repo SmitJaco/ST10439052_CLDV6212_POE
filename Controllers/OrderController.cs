@@ -361,7 +361,7 @@ namespace ST10439052_CLDV_POE.Controllers
             }
         }
 
-        // GET: Order/CreateFromCart
+        // POST: Order/CreateFromCart
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]

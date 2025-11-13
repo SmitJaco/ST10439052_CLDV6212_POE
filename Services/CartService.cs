@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using ST10439052_CLDV_POE.Data;
 using ST10439052_CLDV_POE.Models;
 using ST10439052_CLDV_POE.Models.ViewModels;
-using ST10439052_CLDV_POE.Services;
 
 namespace ST10439052_CLDV_POE.Services
 {

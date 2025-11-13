@@ -501,31 +501,120 @@
                                 <i class="fas fa-home"></i> Home
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Customer" asp-action="Index">
-                                <i class="fas fa-users"></i> Customers
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Product" asp-action="Index">
-                                <i class="fas fa-box"></i> Products
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Order" asp-action="Index">
-                                <i class="fas fa-shopping-cart"></i> Orders
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Upload" asp-action="Index">
-                                <i class="fas fa-upload"></i> Upload Files
-                            </a>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            @if (User.HasClaim(c => c.Type == "Role" && c.Value == "Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Home" asp-action="AdminDashboard">
+                                        <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Order" asp-action="Manage">
+                                        <i class="fas fa-cog"></i> Manage Orders
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Product" asp-action="Index">
+                                        <i class="fas fa-box"></i> Products
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Order" asp-action="Index">
+                                        <i class="fas fa-shopping-cart"></i> All Orders
+                                    </a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Home" asp-action="CustomerDashboard">
+                                        <i class="fas fa-user"></i> My Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Product" asp-action="Index">
+                                        <i class="fas fa-box"></i> Products
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Order" asp-action="MyOrders">
+                                        <i class="fas fa-shopping-bag"></i> My Orders
+                                    </a>
+                                </li>
+                            }
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Product" asp-action="Index">
+                                    <i class="fas fa-box"></i> Products
+                                </a>
+                            </li>
+                        }
                         <li class="nav-item">
                             <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Privacy">
                                 <i class="fas fa-shield-alt"></i> Privacy
                             </a>
                         </li>
+                    </ul>
+                    <ul class="navbar-nav">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            @if (User.HasClaim(c => c.Type == "Role" && c.Value == "Customer"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link position-relative" asp-controller="Cart" asp-action="Index">
+                                        <i class="fas fa-shopping-cart"></i> Cart
+                                        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="cart-badge">0</span>
+                                    </a>
+                                </li>
+                            }
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user"></i> @User.Identity.Name
+                                    @if (User.HasClaim(c => c.Type == "Role" && c.Value == "Admin"))
+                                    {
+                                        <span class="badge bg-warning text-dark ms-1">Admin</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info ms-1">Customer</span>
+                                    }
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    @if (User.HasClaim(c => c.Type == "Role" && c.Value == "Admin"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Home" asp-action="AdminDashboard"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</a></li>
+                                    }
+                                    else
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Home" asp-action="CustomerDashboard"><i class="fas fa-user"></i> My Dashboard</a></li>
+                                    }
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-controller="Login" asp-action="Logout" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Login" asp-action="Login">
+                                    <i class="fas fa-sign-in-alt"></i> Login
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Login" asp-action="Register">
+                                    <i class="fas fa-user-plus"></i> Register
+                                </a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>

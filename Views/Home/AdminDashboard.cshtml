@@ -1,0 +1,166 @@
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h2>
+            <p class="text-muted">Welcome, @User.Identity?.Name! Manage your store efficiently.</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Products</h6>
+                            <h2 class="mb-0">@ViewBag.ProductCount</h2>
+                        </div>
+                        <i class="fas fa-box fa-3x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Customers</h6>
+                            <h2 class="mb-0">@ViewBag.CustomerCount</h2>
+                        </div>
+                        <i class="fas fa-users fa-3x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Pending Orders</h6>
+                            <h2 class="mb-0">@ViewBag.PendingOrders</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Orders</h6>
+                            <h2 class="mb-0">@ViewBag.OrderCount</h2>
+                        </div>
+                        <i class="fas fa-shopping-cart fa-3x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a asp-controller="Order" asp-action="Manage" class="btn btn-warning btn-lg w-100">
+                                <i class="fas fa-cog"></i> Manage Orders
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a asp-controller="Product" asp-action="Create" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-plus"></i> Add Product
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a asp-controller="Order" asp-action="Index" class="btn btn-info btn-lg w-100">
+                                <i class="fas fa-list"></i> View All Orders
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a asp-controller="Product" asp-action="Index" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-box"></i> Manage Products
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Orders -->
+    @if (ViewBag.PendingOrdersList != null && ((List<ST10439052_CLDV_POE.Models.Order>)ViewBag.PendingOrdersList).Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-white">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-circle"></i> Pending Orders (Latest 10)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Product</th>
+                                        <th>Quantity</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in (List<ST10439052_CLDV_POE.Models.Order>)ViewBag.PendingOrdersList)
+                                    {
+                                        <tr>
+                                            <td><code>@order.OrderId.Substring(0, 8)...</code></td>
+                                            <td>@order.Username</td>
+                                            <td>@order.ProductName</td>
+                                            <td>@order.Quantity</td>
+                                            <td><strong>@order.TotalPrice.ToString("C")</strong></td>
+                                            <td><span class="badge bg-warning">@order.Status</span></td>
+                                            <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
+                                            <td>
+                                                <a asp-controller="Order" asp-action="Edit" asp-route-id="@order.RowKey" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-edit"></i> Update Status
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3 text-center">
+                            <a asp-controller="Order" asp-action="Manage" class="btn btn-primary">
+                                <i class="fas fa-list"></i> View All Orders
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> No pending orders! All orders are processed.
+        </div>
+    }
+</div>
+

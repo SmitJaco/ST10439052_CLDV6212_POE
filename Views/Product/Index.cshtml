@@ -64,12 +64,21 @@
                         </td>
                         <td>
                             <div class="d-flex flex-wrap gap-1">
-                                <a asp-action="Edit" asp-route-id="@product.RowKey" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete('@product.RowKey', '@product.ProductName')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                @if (User.Identity?.IsAuthenticated == true && User.HasClaim(c => c.Type == "Role" && c.Value == "Customer"))
+                                {
+                                    <button type="button" class="btn btn-sm btn-success" onclick="addToCart('@product.RowKey', '@product.ProductName')">
+                                        <i class="fas fa-cart-plus"></i> Add to Cart
+                                    </button>
+                                }
+                                @if (User.Identity?.IsAuthenticated == true && User.HasClaim(c => c.Type == "Role" && c.Value == "Admin"))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@product.RowKey" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete('@product.RowKey', '@product.ProductName')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                }
                             </div>
                         </td>
                     </tr>
@@ -114,5 +123,45 @@ else
             document.getElementById('deleteForm').action = '/Product/Delete/' + productId;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
+
+        function addToCart(productId, productName) {
+            fetch('/Cart/AddToCart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: 'productId=' + encodeURIComponent(productId) + '&quantity=1&__RequestVerificationToken=' + 
+                      (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '')
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update cart badge
+                    const cartBadge = document.getElementById('cart-badge');
+                    if (cartBadge) {
+                        cartBadge.textContent = data.itemCount || 0;
+                        cartBadge.style.display = data.itemCount > 0 ? 'block' : 'none';
+                    }
+                    alert(productName + ' added to cart!');
+                } else {
+                    alert('Failed to add item to cart: ' + (data.message || 'Please login first'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding to cart');
+            });
+        }
+
+        // Load cart count on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            @if (User.Identity?.IsAuthenticated == true && User.HasClaim(c => c.Type == "Role" && c.Value == "Customer"))
+            {
+                <text>
+                // Cart badge will be updated when cart is accessed
+                </text>
+            }
+        });
     </script>
 }
