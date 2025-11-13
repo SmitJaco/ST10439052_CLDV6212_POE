@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ST10439052_CLDV_POE.Models;
@@ -5,25 +6,49 @@ using ST10439052_CLDV_POE.Models.ViewModels;
 using ST10439052_CLDV_POE.Services;
 using System.Text.Json;
 using ST10439052_CLDV_POE.Configuration;
+using System.Security.Claims;
 
 namespace ST10439052_CLDV_POE.Controllers
 {
     public class OrderController : Controller
     {
         private readonly IAzureStorageService _storageService;
+        private readonly ICartService _cartService;
         private readonly ILogger<OrderController> _logger;
 
-        public OrderController(IAzureStorageService storageService, ILogger<OrderController> logger)
+        public OrderController(IAzureStorageService storageService, ICartService cartService, ILogger<OrderController> logger)
         {
             _storageService = storageService;
+            _cartService = cartService;
             _logger = logger;
+        }
+
+        private bool IsAdmin()
+        {
+            return User.HasClaim(c => c.Type == "Role" && c.Value == "Admin");
+        }
+
+        private string GetCurrentUsername()
+        {
+            return User.Identity?.Name ?? string.Empty;
         }
 
         // GET: Order
         public async Task<IActionResult> Index()
         {
-            var orders = await _storageService.GetAllEntitiesAsync<Order>();
-            return View(orders);
+            var allOrders = await _storageService.GetAllEntitiesAsync<Order>();
+            
+            // Filter by role: Admins see all, Customers see only their orders
+            if (IsAdmin())
+            {
+                return View(allOrders);
+            }
+            else
+            {
+                var username = GetCurrentUsername();
+                var userOrders = allOrders.Where(o => o.Username == username || o.CustomerId == username).ToList();
+                return View(userOrders);
+            }
         }
 
         // GET: Order/Details/5
@@ -181,6 +206,7 @@ namespace ST10439052_CLDV_POE.Controllers
         }
 
         // GET: Order/Edit/5
+        [Authorize]
         public async Task<IActionResult> Edit(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -194,12 +220,20 @@ namespace ST10439052_CLDV_POE.Controllers
                 return NotFound();
             }
 
+            // Only admins can edit orders
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Login");
+            }
+
+            ViewBag.IsAdmin = true;
             return View(order);
         }
 
         // POST: Order/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> Edit(Order order)
         {
             if (ModelState.IsValid)
@@ -325,6 +359,130 @@ namespace ST10439052_CLDV_POE.Controllers
             {
                 return Json(new { success = false });
             }
+        }
+
+        // GET: Order/CreateFromCart
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateFromCart()
+        {
+            var username = GetCurrentUsername();
+            if (string.IsNullOrEmpty(username))
+            {
+                return RedirectToAction("Login", "Login");
+            }
+
+            try
+            {
+                var cartItems = await _cartService.GetCartItemsAsync(username);
+                if (!cartItems.Any())
+                {
+                    TempData["Error"] = "Your cart is empty";
+                    return RedirectToAction("Index", "Cart");
+                }
+
+                var ordersCreated = new List<string>();
+
+                foreach (var item in cartItems)
+                {
+                    var product = await _storageService.GetEntityAsync<Product>("Product", item.ProductId);
+                    if (product == null)
+                    {
+                        _logger.LogWarning("Product {ProductId} not found in cart", item.ProductId);
+                        continue;
+                    }
+
+                    // Check stock
+                    if (product.StockAvailable < item.Quantity)
+                    {
+                        TempData["Error"] = $"Insufficient stock for {product.ProductName}. Available: {product.StockAvailable}";
+                        return RedirectToAction("Index", "Cart");
+                    }
+
+                    // Create order
+                    var order = new Order
+                    {
+                        CustomerId = username, // Store username as CustomerId
+                        Username = username,
+                        ProductId = item.ProductId,
+                        ProductName = item.ProductName,
+                        OrderDate = DateTime.UtcNow,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.Price,
+                        TotalPrice = item.TotalPrice,
+                        Status = "Submitted",
+                        UpdatedAt = DateTimeOffset.UtcNow
+                    };
+
+                    order.TotalPriceString = order.TotalPrice.ToString("F2");
+
+                    await _storageService.AddEntityAsync(order);
+
+                    // Update product stock
+                    product.StockAvailable -= item.Quantity;
+                    await _storageService.UpdateEntityAsync(product);
+
+                    // Send queue message for new order
+                    var orderMessage = new
+                    {
+                        OrderId = order.OrderId,
+                        CustomerId = order.CustomerId,
+                        CustomerName = username,
+                        ProductName = product.ProductName,
+                        Quantity = order.Quantity,
+                        TotalPrice = order.TotalPrice,
+                        OrderDate = order.OrderDate,
+                        Status = order.Status
+                    };
+
+                    await _storageService.SendMessageAsync(StorageNames.QueueOrderNotifications, JsonSerializer.Serialize(orderMessage));
+
+                    ordersCreated.Add(order.OrderId);
+                }
+
+                // Clear cart
+                await _cartService.ClearCartAsync(username);
+
+                TempData["Success"] = $"Successfully created {ordersCreated.Count} order(s)!";
+                return RedirectToAction("Confirmation", "Cart");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating order from cart");
+                TempData["Error"] = $"Error creating order: {ex.Message}";
+                return RedirectToAction("Index", "Cart");
+            }
+        }
+
+        // GET: Order/MyOrders
+        [Authorize]
+        public async Task<IActionResult> MyOrders()
+        {
+            var username = GetCurrentUsername();
+            if (string.IsNullOrEmpty(username))
+            {
+                return RedirectToAction("Login", "Login");
+            }
+
+            var allOrders = await _storageService.GetAllEntitiesAsync<Order>();
+            var userOrders = allOrders
+                .Where(o => o.Username == username || o.CustomerId == username)
+                .OrderByDescending(o => o.OrderDate)
+                .ToList();
+
+            return View(userOrders);
+        }
+
+        // GET: Order/Manage
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> Manage()
+        {
+            var allOrders = await _storageService.GetAllEntitiesAsync<Order>();
+            var orders = allOrders.OrderByDescending(o => o.OrderDate).ToList();
+            
+            ViewBag.IsAdmin = true;
+            return View(orders);
         }
 
         private async Task PopulateDropdowns(OrderCreateViewModel model)

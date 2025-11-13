@@ -62,6 +62,7 @@ namespace ST10439052_CLDV_POE.Models
         {
             Submitted,
             Processing,
+            PROCESSED,
             Completed,
             Cancelled
         }

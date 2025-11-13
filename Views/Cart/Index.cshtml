@@ -1,0 +1,122 @@
+@model List<ST10439052_CLDV_POE.Models.ViewModels.CartItemViewModel>
+
+@{
+    ViewData["Title"] = "Shopping Cart";
+    var totalPrice = Model.Sum(item => item.TotalPrice);
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shopping-cart"></i> Shopping Cart</h2>
+        @if (Model.Any())
+        {
+            <form asp-action="ClearCart" method="post" style="display: inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to clear your cart?')">
+                    <i class="fas fa-trash"></i> Clear Cart
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                            {
+                                                <img src="@item.ImageUrl" alt="@item.ProductName" class="img-thumbnail me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-light d-inline-flex align-items-center justify-content-center me-2" style="width: 50px; height: 50px;">
+                                                    <i class="fas fa-box text-muted"></i>
+                                                </div>
+                                            }
+                                            <strong>@item.ProductName</strong>
+                                        </td>
+                                        <td>@item.Price.ToString("C")</td>
+                                        <td>
+                                            <form asp-action="UpdateQuantity" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="cartId" value="@item.CartId" />
+                                                <input type="number" name="quantity" value="@item.Quantity" min="1" class="form-control d-inline" style="width: 80px;" onchange="this.form.submit()" />
+                                            </form>
+                                        </td>
+                                        <td><strong>@item.TotalPrice.ToString("C")</strong></td>
+                                        <td>
+                                            <form asp-action="RemoveFromCart" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="cartId" value="@item.CartId" />
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove this item from cart?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-receipt"></i> Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Items:</span>
+                            <strong>@Model.Count</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>Total Quantity:</span>
+                            <strong>@Model.Sum(item => item.Quantity)</strong>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>Total:</h5>
+                            <h5 class="text-success">@totalPrice.ToString("C")</h5>
+                        </div>
+                        <form asp-action="CheckoutConfirmed" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-check"></i> Proceed to Checkout
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+            <h4>Your cart is empty</h4>
+            <p>Start shopping to add items to your cart!</p>
+            <a asp-controller="Product" asp-action="Index" class="btn btn-primary">
+                <i class="fas fa-shopping-bag"></i> Browse Products
+            </a>
+        </div>
+    }
+</div>
+
