@@ -53,19 +53,37 @@
           "dependencies": {
             "Azure.Data.Tables": {
               "target": "Package",
-              "version": "[12.8.2, )"
+              "version": "[12.9.1, )"
             },
             "Azure.Storage.Blobs": {
               "target": "Package",
-              "version": "[12.19.1, )"
+              "version": "[12.22.2, )"
             },
             "Azure.Storage.Files.Shares": {
               "target": "Package",
-              "version": "[12.17.0, )"
+              "version": "[12.20.1, )"
             },
             "Azure.Storage.Queues": {
               "target": "Package",
-              "version": "[12.17.0, )"
+              "version": "[12.20.1, )"
+            },
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.Tools": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Microsoft.Extensions.Azure": {
+              "target": "Package",
+              "version": "[1.7.6, )"
             },
             "Microsoft.VisualStudio.Web.CodeGeneration.Design": {
               "target": "Package",

@@ -2,6 +2,6 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ActiveDebugProfile>https</ActiveDebugProfile>
-    <NameOfLastUsedPublishProfile>C:\Users\sjaco\Desktop\IIE MSA\CLDV6212\POECLDVST10439052\ST10439052_CLDV_POE\Properties\PublishProfiles\ST10439052CLDV6212POE - Web Deploy.pubxml</NameOfLastUsedPublishProfile>
+    <NameOfLastUsedPublishProfile>C:\Users\sjaco\Desktop\school\CLDV\POECLDVST10439052\ST10439052_CLDV_POE\Properties\PublishProfiles\CLDVPOEST10439052Final - Web Deploy.pubxml</NameOfLastUsedPublishProfile>
   </PropertyGroup>
 </Project>
