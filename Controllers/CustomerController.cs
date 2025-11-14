@@ -1,22 +1,37 @@
 using Microsoft.AspNetCore.Mvc;
 using ST10439052_CLDV_POE.Models;
 using ST10439052_CLDV_POE.Services;
+using ST10439052_CLDV_POE.Data;
 
 namespace ST10439052_CLDV_POE.Controllers
 {
     public class CustomerController : Controller
     {
         private readonly IAzureStorageService _storageService;
+        private readonly AuthDbContext _context;
 
-        public CustomerController(IAzureStorageService storageService)
+        public CustomerController(IAzureStorageService storageService, AuthDbContext context)
         {
             _storageService = storageService;
+            _context = context;
         }
 
         // GET: Customer
         public async Task<IActionResult> Index()
         {
             var customers = await _storageService.GetAllEntitiesAsync<Customer>();
+            if (customers == null || customers.Count == 0)
+            {
+                var users = _context.Users.ToList();
+                customers = users.Select(u => new Customer
+                {
+                    Username = u.Username,
+                    Name = string.Empty,
+                    Surname = string.Empty,
+                    Email = string.Empty,
+                    ShippingAddress = string.Empty
+                }).ToList();
+            }
             return View(customers);
         }
 

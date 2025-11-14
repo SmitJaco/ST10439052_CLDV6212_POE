@@ -16,6 +16,8 @@ namespace ST10439052_CLDV_POE.Services
         Task<string> UploadImageAsync(IFormFile file, string containerName);
         Task<string> UploadFileAsync(IFormFile file, string containerName);
         Task DeleteBlobAsync(string blobName, string containerName);
+        Task<List<string>> ListBlobsAsync(string containerName);
+        Task<byte[]> DownloadBlobAsync(string containerName, string blobName);
 
         // Queue operations
         Task SendMessageAsync(string queueName, string message);

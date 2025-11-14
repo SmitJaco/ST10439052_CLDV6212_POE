@@ -1,6 +1,7 @@
 using Azure;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
 using Azure.Storage.Files.Shares;
 using Azure.Storage.Sas;
@@ -193,6 +194,27 @@ namespace ST10439052_CLDV_POE.Services
         {
             var blobClient = _blobServiceClient.GetBlobContainerClient(containerName).GetBlobClient(blobName);
             await blobClient.DeleteIfExistsAsync();
+        }
+
+        public async Task<List<string>> ListBlobsAsync(string containerName)
+        {
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            await containerClient.CreateIfNotExistsAsync();
+            var names = new List<string>();
+            await foreach (BlobItem blob in containerClient.GetBlobsAsync())
+            {
+                names.Add(blob.Name);
+            }
+            return names;
+        }
+
+        public async Task<byte[]> DownloadBlobAsync(string containerName, string blobName)
+        {
+            var blobClient = _blobServiceClient.GetBlobContainerClient(containerName).GetBlobClient(blobName);
+            var response = await blobClient.DownloadAsync();
+            using var ms = new MemoryStream();
+            await response.Value.Content.CopyToAsync(ms);
+            return ms.ToArray();
         }
         #endregion
 

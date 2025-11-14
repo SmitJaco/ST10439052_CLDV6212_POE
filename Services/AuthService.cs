@@ -2,16 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using ST10439052_CLDV_POE.Data;
 using ST10439052_CLDV_POE.Models;
 using ST10439052_CLDV_POE.Models.ViewModels;
+using ST10439052_CLDV_POE.Services;
 
 namespace ST10439052_CLDV_POE.Services
 {
     public class AuthService : IAuthService
     {
         private readonly AuthDbContext _context;
+        private readonly IAzureStorageService _storage;
 
-        public AuthService(AuthDbContext context)
+        public AuthService(AuthDbContext context, IAzureStorageService storage)
         {
             _context = context;
+            _storage = storage;
         }
 
         public async Task<bool> RegisterAsync(RegisterViewModel model)
@@ -35,7 +38,18 @@ namespace ST10439052_CLDV_POE.Services
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            
+            // Mirror to Azure Table Customers so UI can list customers
+            var customer = new Customer
+            {
+                Username = model.Username,
+                Name = string.Empty,
+                Surname = string.Empty,
+                Email = string.Empty,
+                ShippingAddress = string.Empty,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            await _storage.AddEntityAsync(customer);
+
             return true;
         }
 

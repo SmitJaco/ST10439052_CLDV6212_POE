@@ -195,6 +195,17 @@ namespace ST10439052_CLDV_POE.Controllers
             // This will be handled by OrderController - redirect there
             return RedirectToAction("CreateFromCart", "Order");
         }
+
+        [HttpGet]
+        public IActionResult Confirmation()
+        {
+            var username = User.Identity?.Name ?? string.Empty;
+            if (string.IsNullOrEmpty(username))
+            {
+                return RedirectToAction("Login", "Login");
+            }
+            return View();
+        }
     }
 }
 

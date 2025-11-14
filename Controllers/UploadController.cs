@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ST10439052_CLDV_POE.Models;
 using ST10439052_CLDV_POE.Services;
 using ST10439052_CLDV_POE.Configuration;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ST10439052_CLDV_POE.Controllers
 {
+    [Authorize]
     public class UploadController : Controller
     {
         private readonly IAzureStorageService _storageService;
@@ -65,6 +67,27 @@ namespace ST10439052_CLDV_POE.Controllers
             }
 
             return View(model);
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> List()
+        {
+            var uploads = await _storageService.ListBlobsAsync(StorageNames.ContainerUploads);
+            var proofs = await _storageService.ListBlobsAsync(StorageNames.ContainerPaymentProofs);
+            ViewBag.Uploads = uploads;
+            ViewBag.PaymentProofs = proofs;
+            return View();
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> Download(string container, string name)
+        {
+            if (string.IsNullOrWhiteSpace(container) || string.IsNullOrWhiteSpace(name))
+            {
+                return BadRequest();
+            }
+            var bytes = await _storageService.DownloadBlobAsync(container, name);
+            return File(bytes, "application/octet-stream", name);
         }
     }
 }
