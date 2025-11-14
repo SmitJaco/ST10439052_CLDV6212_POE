@@ -2,11 +2,16 @@ using ST10439052_CLDV_POE.Services;
 using ST10439052_CLDV_POE.Data;
 using Microsoft.Extensions.Azure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Mvc.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new AuthorizeFilter());
+});
 
 // Add Entity Framework Core for Azure SQL Database
 var sqlConnectionString = builder.Configuration.GetConnectionString("AzureSQL") ?? 

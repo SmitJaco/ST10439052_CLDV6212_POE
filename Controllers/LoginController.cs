@@ -21,6 +21,7 @@ namespace ST10439052_CLDV_POE.Controllers
 
         // GET: Login/Register
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult Register()
         {
             return View();
@@ -29,6 +30,7 @@ namespace ST10439052_CLDV_POE.Controllers
         // POST: Login/Register
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [AllowAnonymous]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid)
@@ -60,6 +62,7 @@ namespace ST10439052_CLDV_POE.Controllers
 
         // GET: Login/Login
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult Login()
         {
             return View();
@@ -68,6 +71,7 @@ namespace ST10439052_CLDV_POE.Controllers
         // POST: Login/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
@@ -88,7 +92,7 @@ namespace ST10439052_CLDV_POE.Controllers
                         new Claim("UserId", user.Id.ToString())
                     };
 
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var claimsIdentity = new ClaimsIdentity(claims, "CookieAuth");
                     var authProperties = new AuthenticationProperties
                     {
                         IsPersistent = model.RememberMe,
@@ -96,7 +100,7 @@ namespace ST10439052_CLDV_POE.Controllers
                     };
 
                     await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        "CookieAuth",
                         new ClaimsPrincipal(claimsIdentity),
                         authProperties);
 
@@ -131,13 +135,14 @@ namespace ST10439052_CLDV_POE.Controllers
         [Authorize]
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignOutAsync("CookieAuth");
             TempData["Success"] = "You have been logged out successfully.";
             return RedirectToAction("Index", "Home");
         }
 
         // GET: Login/AccessDenied
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult AccessDenied()
         {
             return View();
