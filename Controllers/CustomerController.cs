@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ST10439052_CLDV_POE.Models;
 using ST10439052_CLDV_POE.Services;
 using ST10439052_CLDV_POE.Data;
 
 namespace ST10439052_CLDV_POE.Controllers
 {
+    [Authorize(Policy = "AdminOnly")]
     public class CustomerController : Controller
     {
         private readonly IAzureStorageService _storageService;
@@ -25,6 +27,7 @@ namespace ST10439052_CLDV_POE.Controllers
                 var users = _context.Users.ToList();
                 customers = users.Select(u => new Customer
                 {
+                    RowKey = u.Username,
                     Username = u.Username,
                     Name = string.Empty,
                     Surname = string.Empty,
@@ -46,7 +49,22 @@ namespace ST10439052_CLDV_POE.Controllers
             var customer = await _storageService.GetEntityAsync<Customer>("Customer", id);
             if (customer == null)
             {
-                return NotFound();
+                var user = _context.Users.FirstOrDefault(u => u.Username == id);
+                if (user == null)
+                {
+                    return NotFound();
+                }
+                customer = new Customer
+                {
+                    RowKey = user.Username,
+                    Username = user.Username,
+                    Name = string.Empty,
+                    Surname = string.Empty,
+                    Email = string.Empty,
+                    ShippingAddress = string.Empty,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                await _storageService.AddEntityAsync(customer);
             }
 
             return View(customer);
@@ -91,7 +109,27 @@ namespace ST10439052_CLDV_POE.Controllers
             var customer = await _storageService.GetEntityAsync<Customer>("Customer", id);
             if (customer == null)
             {
-                return NotFound();
+                var all = await _storageService.GetAllEntitiesAsync<Customer>();
+                customer = all.FirstOrDefault(c => c.RowKey == id || c.Username == id);
+                if (customer == null)
+                {
+                    var user = _context.Users.FirstOrDefault(u => u.Username == id);
+                    if (user == null)
+                    {
+                        return NotFound();
+                    }
+                    customer = new Customer
+                    {
+                        RowKey = user.Username,
+                        Username = user.Username,
+                        Name = string.Empty,
+                        Surname = string.Empty,
+                        Email = string.Empty,
+                        ShippingAddress = string.Empty,
+                        UpdatedAt = DateTimeOffset.UtcNow
+                    };
+                    await _storageService.AddEntityAsync(customer);
+                }
             }
 
             return View(customer);

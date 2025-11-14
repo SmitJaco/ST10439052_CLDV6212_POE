@@ -30,7 +30,7 @@
                 @foreach (var customer in Model)
                 {
                     <tr>
-                        <td><code>@customer.CustomerId.Substring(0, 8)...</code></td>
+                        <td><code>@(((customer.CustomerId ?? "").Length >= 8 ? (customer.CustomerId ?? "").Substring(0, 8) + "..." : customer.CustomerId))</code></td>
                         <td>@customer.Name</td>
                         <td>@customer.Surname</td>
                         <td>@customer.Username</td>
